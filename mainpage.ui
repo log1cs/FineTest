@@ -69,7 +69,7 @@
     </property>
     <property name="font">
      <font>
-      <family>Bahnschrift SemiLight Condensed</family>
+      
       <pointsize>12</pointsize>
       <weight>50</weight>
       <bold>false</bold>
@@ -107,7 +107,7 @@ QPushButton:focus{
     </property>
     <property name="font">
      <font>
-      <family>Bahnschrift</family>
+      
       <pointsize>12</pointsize>
       <weight>50</weight>
       <bold>false</bold>
@@ -132,7 +132,7 @@ background-color: rgb(84, 136, 237);</string>
     </property>
     <property name="font">
      <font>
-      <family>Bahnschrift</family>
+      
       <pointsize>12</pointsize>
      </font>
     </property>
@@ -154,7 +154,7 @@ background-color: rgb(84, 136, 237);</string>
     </property>
     <property name="font">
      <font>
-      <family>Bahnschrift SemiLight Condensed</family>
+      
       <pointsize>12</pointsize>
       <weight>50</weight>
       <bold>false</bold>
@@ -188,7 +188,7 @@ QPushButton:focus{
     </property>
     <property name="font">
      <font>
-      <family>Bahnschrift</family>
+      
       <pointsize>12</pointsize>
       <weight>50</weight>
       <bold>false</bold>
@@ -213,7 +213,7 @@ background-color: rgb(84, 136, 237);</string>
     </property>
     <property name="font">
      <font>
-      <family>Bahnschrift</family>
+      
       <pointsize>12</pointsize>
      </font>
     </property>
@@ -235,7 +235,7 @@ background-color: rgb(84, 136, 237);</string>
     </property>
     <property name="font">
      <font>
-      <family>Bahnschrift</family>
+      
       <pointsize>12</pointsize>
       <weight>50</weight>
       <bold>false</bold>
@@ -260,7 +260,7 @@ background-color: rgb(84, 136, 237);</string>
     </property>
     <property name="font">
      <font>
-      <family>Bahnschrift SemiLight Condensed</family>
+      
       <pointsize>12</pointsize>
       <weight>50</weight>
       <bold>false</bold>
@@ -296,7 +296,7 @@ QPushButton:focus{
     </property>
     <property name="font">
      <font>
-      <family>Bahnschrift</family>
+      
       <pointsize>12</pointsize>
       <weight>50</weight>
       <bold>false</bold>
@@ -336,7 +336,7 @@ border-radius: 12px;</string>
     </property>
     <property name="font">
      <font>
-      <family>Bahnschrift</family>
+      
       <pointsize>12</pointsize>
      </font>
     </property>
@@ -358,7 +358,7 @@ border-radius: 12px;</string>
     </property>
     <property name="font">
      <font>
-      <family>Bahnschrift</family>
+      
       <pointsize>12</pointsize>
       <weight>50</weight>
       <bold>false</bold>
@@ -383,7 +383,7 @@ background-color: rgb(84, 136, 237);</string>
     </property>
     <property name="font">
      <font>
-      <family>Bahnschrift</family>
+      
       <pointsize>12</pointsize>
      </font>
     </property>
@@ -405,7 +405,7 @@ background-color: rgb(84, 136, 237);</string>
     </property>
     <property name="font">
      <font>
-      <family>Bahnschrift</family>
+      
       <pointsize>12</pointsize>
       <weight>50</weight>
       <bold>false</bold>
@@ -445,7 +445,7 @@ background-color: rgb(84, 136, 237);</string>
      </property>
      <property name="font">
       <font>
-       <family>Bahnschrift</family>
+       
        <pointsize>11</pointsize>
        <weight>50</weight>
        <italic>false</italic>
@@ -454,7 +454,7 @@ background-color: rgb(84, 136, 237);</string>
       </font>
      </property>
      <property name="styleSheet">
-      <string notr="true">font: 10.5pt &quot;Bahnschrift&quot;;
+      <string notr="true">font: 10.5pt &quot;;
 border: 0px solid #ccc;</string>
      </property>
      <property name="sizeAdjustPolicy">

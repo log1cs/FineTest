@@ -1,4 +1,4 @@
-import sys, subprocess, os, urllib, zipfile, mysql.connector, time, json, PyQt5
+import sys, subprocess, os, urllib, zipfile, time, json, PyQt5, requests
 from PyQt5.uic import loadUi
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import * 
@@ -9,7 +9,8 @@ from urllib import request
 from io import BytesIO
 from urllib.request import urlopen
 
-	
+					
+
 
 url = "https://bsite.net/tuanvu02/data.json"
 response = urlopen(url)
@@ -20,7 +21,7 @@ class LoginPage(QDialog):
 	def __init__(self):
 
 		# current_version
-		__version = 1.1
+		__version = 1.0
 		super(LoginPage, self).__init__()
 
 		
@@ -45,14 +46,14 @@ class LoginPage(QDialog):
 			# Load loginpage 
 			loadUi("loginpage.ui", self)
 			self.setWindowTitle("Login")
-			widget.setFixedHeight(262)
-			widget.setFixedWidth(580)
+			widget.width = 580
+			widget.height = 262
 			widget.setWindowTitle('Đăng nhập')
 			self.loginButton.clicked.connect(self.select_subject)
-			self.label_3.setStyleSheet("font-size: 13px; font: Bahnschrift light")
-			self.label_4.setStyleSheet("font-size: 13px; font: Bahnschrift light")
-			self.label_5.setStyleSheet("font-size: 13px; font: Bahnschrift light")
-			self.loginButton.setStyleSheet("font-size: 15px")
+			self.label_3.setStyleSheet("font-size: 13px; ")
+			self.label_4.setStyleSheet("font-size: 13px; ")
+			self.label_5.setStyleSheet("font-size: 13px; ")
+			self.loginButton.setStyleSheet("font-size: 13px;")
 
 			self.namefield.setStyleSheet("border-radius: 3px; border: 1px solid #000; font-size:12px;")
 			self.idfield.setStyleSheet("border-radius: 3px; border: 1px solid #000; font-size:12px;")
@@ -65,18 +66,19 @@ class LoginPage(QDialog):
 
 
 	def select_subject(self):
-		global name, msv, lop, sjSelection, main_data, sj_id_list
+		global name, msv, lop, sjSelection, main_data, sj_id_list, res, user_id
 		name = self.namefield.text()
-		msv = self.idfield.text()
+		msv = self.idfield.text()  #0912102165
 		lop = self.classfield.text()
 
-		sj_id_list = []
-		sj_list = []
-		# check if user_id exist
-		if(msv in main_data.keys()):
-			sj_id_list = list(main_data[msv]["subject"].keys())
-			for i in sj_id_list:
-				sj_list.append(main_data[msv]["subject"][i]["name"])
+		url = f"http://test.iptech.edu.vn/finetest4/api-user-login.php?masv={msv}&hoten={name}&lop={lop}&maytinh=%23&fbclid=IwAR1wFP4mL536UIZAC3IM2ku2DxcaS7m5iWZrpIS9A2JTb9p7-JngW03SIw0"
+		res = requests.get(url)
+		content = res.json()
+
+		if(content['status'] == 1):
+			user_id = content['id']
+			sj_id_list = [ i['subject_id'] for i in content['subjects']]
+			sj_list = [ i['subject_name'] for i in content['subjects']]
 
 			sjSelection = QDialog(self)
 			sjSelection.setWindowTitle("Bạn chọn làm bài nào trong danh sách dưới đây")
@@ -88,21 +90,25 @@ class LoginPage(QDialog):
 			for i in sj_list:
 				sj = QPushButton(i)
 				sj.setFixedSize(350, 39)
+				sj.setStyleSheet("color:black; background-color:#7ab0cc; border-radius: 6px;")
 				sj.clicked.connect(self.goToMainPage)
 				connect_box.addWidget(sj, alignment=Qt.AlignCenter)
 			sjSelection.exec()
 		else:
 			self.errorLogin.setText("* Vui lòng kiểm tra lại thông tin đăng nhập")
+			
 			print("Wrong!")
+
 	def goToMainPage(self):
-		global name, msv, lop, sjSelection, main_data, sj_id_list
+		global name, msv, lop, sjSelection, main_data, sj_id_list, res, main_sj_id
 		subject = self.sender().text()
-		for i in sj_id_list:
-			check = main_data[msv]["subject"][i]["name"]
-			if(check == subject):
-				main_sj_id = i
+		print(subject)
+		for i in res.json()['subjects']:
+			if(i['subject_name'] == subject):
+				main_sj_id = i['subject_id']
+				sj_langs = i['subject_langs']
 				break
-		main = mainPage(name, msv, lop, subject, main_sj_id)
+		main = mainPage(name, msv, lop, subject, main_sj_id, sj_langs)
 		widget.addWidget(main)
 		widget.setCurrentIndex(widget.currentIndex()+1)
 		widget.setFixedHeight(596)
@@ -113,13 +119,12 @@ class LoginPage(QDialog):
 
 
 class mainPage(QDialog):
-	def __init__(self, name, msv, lop, subject, main_sj_id):
-		global _msv, _main_sj_id
+	def __init__(self, name, msv, lop, subject, main_sj_id, sj_langs):
+		global _msv, _main_sj_id, user_id, _sj_langs, score, totalScore, content
 		_msv = msv
 		_main_sj_id = main_sj_id
-		widget.setWindowTitle('Finetest')
-		
-		global mark, totalMark
+		_sj_langs = sj_langs
+		widget.setWindowTitle('FineTest')
 		super(mainPage, self).__init__()
 		loadUi("mainpage.ui", self)
 		self.progressBar.setVisible(False)
@@ -131,7 +136,7 @@ class mainPage(QDialog):
 		self.setFixedHeight(596)
 		self.setFixedWidth(801)
 
-		css_display = "font-size: 15px; color: white;background-color: rgb(84, 136, 237)"
+		css_display = "font-size: 13px; color: white;background-color: rgb(84, 136, 237)"
 		self.nameDisplay.setStyleSheet(css_display)
 		self.idDisplay.setStyleSheet(css_display)
 		self.classDisplay.setStyleSheet(css_display)
@@ -139,25 +144,29 @@ class mainPage(QDialog):
 		self.label_6.setStyleSheet(css_display)
 		self.markDisplay.setStyleSheet(css_display)
 		
-		self.viewButton.setStyleSheet("QPushButton{border-radius: 8px;background-color: rgb(207, 218, 255); font-size: 15px;}QPushButton:hover{color: white;background-color: rgb(85, 170, 127);}QPushButton:focus{outline:none;}")
-		self.submitButton.setStyleSheet("QPushButton{border-radius: 8px;background-color: rgb(207, 218, 255); font-size: 15px;}QPushButton:hover{color: white;background-color: rgb(85, 170, 127);}QPushButton:focus{outline:none;}")
-		self.exitButton.setStyleSheet("QPushButton{border-radius: 8px;background-color: rgb(207, 218, 255); font-size: 15px;}QPushButton:hover{color: white;background-color: rgb(255, 3, 62);}QPushButton:focus{outline:none;}")
+		self.viewButton.setStyleSheet("QPushButton{border-radius: 8px;background-color: #e9e3df; color:black; font-size: 13px;}QPushButton:hover{color: white;background-color: rgb(85, 170, 127);}QPushButton:focus{outline:none;}")
+		self.submitButton.setStyleSheet("QPushButton{border-radius: 8px;background-color: #e9e3df; color:black; font-size: 13px;}QPushButton:hover{color: white;background-color: rgb(85, 170, 127);}QPushButton:focus{outline:none;}")
+		self.exitButton.setStyleSheet("QPushButton{border-radius: 8px;background-color: #e9e3df; color:black; font-size: 13px;}QPushButton:hover{color: white;background-color: #d43d41;}QPushButton:focus{outline:none;}")
 
-		self.titleList.setStyleSheet("font:Bahnschrift; font-size: 14px;border: 0px solid #ccc;")
+		self.titleList.setStyleSheet("color: black; font-size: 12px; border: 0px solid #ccc;")
 	
-		mark = 0
-		totalMark = 0
+		url_problem = f"http://test.iptech.edu.vn/finetest4/api-user-subject-set.php?userid={user_id}&subjectid={_main_sj_id}&fbclid=IwAR30jurteX107CLh6wNF9W9_Fv6Il_NbZeBKaG2qNqAqitp5P5QoxjHMaDw"
+		res_problem = requests.get(url_problem)
+		content = res_problem.json()
+		score = 0
 
 		qr = self.frameGeometry()
 		cp = QDesktopWidget().availableGeometry().center()
 		qr.moveCenter(cp)
 		widget.move(qr.topLeft())
-		
-		mark = main_data[msv]["subject"][main_sj_id]["mark"]
-		total_sj = main_data[msv]["subject"][main_sj_id]["title_total"]
 
-		totalMark += total_sj * 100
-		self.markDisplay.setText(f'Điểm tổng : {mark} / {totalMark}')
+
+		
+
+		
+		total_pr = len(content)
+
+		totalScore = total_pr * 100
 		self.viewButton.clicked.connect(self.open)
 		self.exitButton.clicked.connect(self.exit)
 		self.submitButton.clicked.connect(self.submit)
@@ -167,35 +176,38 @@ class mainPage(QDialog):
 		self.tableWidget = self.titleList
 
 		#Row count
-		self.tableWidget.setRowCount(total_sj + 1) 
+		self.tableWidget.setRowCount(total_pr + 1) 
 
 		#Column count
 		self.tableWidget.setColumnCount(6)
 		self.tableWidget.verticalHeader().setVisible(False)
 
 		
-		exercise_info = main_data[msv]["subject"][main_sj_id]["exercise"]
-		exercise_id_list = list(exercise_info)
-		# print(exercise_id_list)
-		
-		print(total_sj)
-		for i in range(total_sj):
-			exercise_id = exercise_id_list[i]
+		exercise_id_list = [i['problem_id'] for i in content]
+		i = 1
+		for item in content:
+			exercise_id = item['problem_nickname']
 			self.tableWidget.setItem(i,0, QTableWidgetItem(exercise_id))
-			self.tableWidget.setItem(i,1, QTableWidgetItem(exercise_info[exercise_id]["name"]))
-			self.tableWidget.setItem(i,2, QTableWidgetItem(exercise_info[exercise_id]["topic"]))
-			self.tableWidget.setItem(i,3, QTableWidgetItem(str(exercise_info[exercise_id]["timeLimit"]) + " giây"))
+			self.tableWidget.setItem(i,1, QTableWidgetItem(item["problem_fullname"]))
+			self.tableWidget.setItem(i,2, QTableWidgetItem(item["problem_topic"]))
+			pr_maxtime = int(item['problem_maxtime'])/1000
+			self.tableWidget.setItem(i,3, QTableWidgetItem(str(pr_maxtime) + " giây"))
 			self.tableWidget.item(i,3).setTextAlignment(Qt.AlignCenter)
 			
-			submit_times = exercise_info[exercise_id]["submit_times"]
-			temp_mark = exercise_info[exercise_id]["mark"]
+			submit_times = item["tryhard"]
+			if submit_times == None: submit_times = '0'
+			temp_score = item["score"]
+			if temp_score == None: temp_score = '0'
 			self.tableWidget.setItem(i,5, QTableWidgetItem(str(submit_times)))
 			self.tableWidget.item(i,5).setTextAlignment(Qt.AlignCenter)
-			self.tableWidget.setItem(i,4, QTableWidgetItem(str(temp_mark)))
+			self.tableWidget.setItem(i,4, QTableWidgetItem(str(temp_score)))
 			self.tableWidget.item(i,4).setTextAlignment(Qt.AlignCenter)
-			if (temp_mark == 100.0):
+			if (temp_score == '100'):
+				score += 100
 				for k in range(6):
-					self.tableWidget.item(i,k).setForeground(QtGui.QColor(250, 3, 0))
+					self.tableWidget.item(i,k).setForeground(QtGui.QColor(225, 61, 65))
+			i+=1
+		self.markDisplay.setText(f'Điểm tổng : {score} / {totalScore}')
 
 			
 
@@ -215,7 +227,7 @@ class mainPage(QDialog):
 		self.tableWidget.setColumnWidth(3,80)
 		self.tableWidget.setColumnWidth(4,60)
 		self.tableWidget.setColumnWidth(5,50)
-		self.tableWidget.horizontalHeader().setStyleSheet("QHeaderView { font: bold Bahnschrift; font-size: 12px;}")
+		self.tableWidget.horizontalHeader().setStyleSheet("QHeaderView { font: bold; font-size: 12px;}")
 
 		
 		self.scroll = self.statusScroll             # Scroll Area which contains the widgets, set as the centralWidget
@@ -227,61 +239,79 @@ class mainPage(QDialog):
 	
 	def submit(self):
 		try:
-			global mark, totalMark, main_data, msv, _main_sj_id
-			
-			tempMark = 0
+			global score, totalScore, main_data, msv, _main_sj_id, _sj_langs, content
+			tempScore = 0
 			crRow = self.tableWidget.currentRow()
-			content = self.tableWidget.item(crRow,0).text()
-			num_test = int(main_data[msv]["subject"][_main_sj_id]["exercise"][content]["testcase"])
-			path = QFileDialog.getOpenFileName(self, 'Open a file', '','All Files (*.cpp *.py)')
+			pr_nickname = self.tableWidget.item(crRow,0).text()
+			problem_index = None
+			for i in range(len(content)):
+				if(content[i]['problem_nickname'] == pr_nickname):
+					problem_index = i
+					break
+
+			# testcase_amount = int(main_data[msv]["subject"][_main_sj_id]["exercise"][content]["testcase"])
+			testcase_amount = 5
+			if(_sj_langs != None):
+				subject_langs = ""
+				for item in _sj_langs.split():
+					subject_langs+= "*"+item + " "
+					if(item == ".c"):
+						subject_langs+="*.cpp "
+			else:
+				subject_langs = "*.cpp *.py"
+			path = QFileDialog.getOpenFileName(self, 'Open a file', '',f'All Files ({subject_langs})')
 			if path != ('', ''):
 				try:
-					newFolder = f"{os.getcwd()}/User/{content}"
+					newFolder = f"{os.getcwd()}/User/{pr_nickname}"
 					os.mkdir(newFolder)
 				except:
 					print("Folder existed!")
 				print(path[0])
 				object = QLabel("---BẮT ĐẦU CHẤM BÀI---")
+				object.setStyleSheet("color: black; font-size:11px;")
 				self.vbox.addWidget(object)
 				self.widget.setLayout(self.vbox)
 				self.scroll.setWidget(self.widget)
 				self.scroll.verticalScrollBar().rangeChanged.connect(self.ResizeScroll)
 
 				#create a new folder to contain user's output
-				newpath = f'./User/{content}' 
+				newpath = f'./User/{pr_nickname}' 
 				if not os.path.exists(newpath):
 				    os.makedirs(newpath)
 				if path[0][-3:] == '.py':
-					drRun = f'python {path[0]}'
+					drRun = f'python3 {path[0]}'
 				else:
-					drRun = 'a.exe'
+					drRun = './a.out'
 				self.progressBar.setVisible(True)
-				prbar_val = 100/num_test
-				for i in range(1,num_test+1):
+				prbar_val = 100/testcase_amount
+				for i in range(1,testcase_amount+1):
 					
 					if i == 1 and path[0][-3:] == 'cpp':
 						subprocess.run(f'g++ {path[0]}', shell=True)
 
-					process = subprocess.Popen(f"{drRun} <./Submit/{content}/{i}.inp> ./User/{content}/output{i}.out", shell=True)
+					process = subprocess.Popen(f"{drRun} <./Submit/{pr_nickname}/{i}.inp> ./User/{pr_nickname}/output{i}.out", shell=True)
+
+
+
 					
 					try:
 						start_time = time.time()
 						print('Running in process', process.pid)
 						process.wait(timeout=1)
-						file1 = open(f"./Submit/{content}/{i}.out",'r')
+						file1 = open(f"./Submit/{pr_nickname}/{i}.out",'r')
 						var1 = file1.read()
 						file1.close()
 
-						file1 = open(f'./User/{content}/output{i}.out', 'r')
+						file1 = open(f'./User/{pr_nickname}/output{i}.out', 'r')
 						var2 = file1.read()
 						file1.close()
 
 						exe_time = round((time.time() - start_time), 3)
 						# Compare
 						if var2 == var1:
-							tempMark+=20
-							object = QLabel(f'[{content}] Test {i}: Hoàn toàn chính xác - thời gian chạy {exe_time}s')
-							object.setStyleSheet("color: green")
+							tempScore+=20
+							object = QLabel(f'[{pr_nickname}] Test {i}: Hoàn toàn chính xác - thời gian chạy {exe_time}s')
+							object.setStyleSheet("color: green; font-size:11px;")
 							self.vbox.addWidget(object)
 							self.widget.setLayout(self.vbox)
 							self.scroll.setWidget(self.widget)
@@ -293,18 +323,20 @@ class mainPage(QDialog):
 							tempVar2 = var2.split()
 
 							if ''.join(tempVar2) == ''.join(tempVar1):
-								tempMark+=15
-								object = QLabel(f'[{content}] Test {i}: Đúng nhưng sai sót về trình bày')
+								tempScore+=15
+								object = QLabel(f'[{pr_nickname}] Test {i}: Đúng nhưng sai sót về trình bày')
+								object.setStyleSheet("color: black; font-size:11px;")
 								self.vbox.addWidget(object)
 								self.widget.setLayout(self.vbox)
 								self.scroll.setWidget(self.widget)
 								self.scroll.verticalScrollBar().rangeChanged.connect(self.ResizeScroll)
+
 								#prevent freeze
 								QApplication.processEvents()
 								
 							else:
-								object = QLabel(f'[{content}] Test {i}: Kết quả sai, hãy kiểm tra lại bài làm - thời gian chạy {exe_time}s')
-								object.setStyleSheet("color: red")
+								object = QLabel(f'[{pr_nickname}] Test {i}: Kết quả sai, hãy kiểm tra lại bài làm - thời gian chạy {exe_time}s')
+								object.setStyleSheet("color: #ef3d41; font-size:11px;")
 								self.vbox.addWidget(object)
 								self.widget.setLayout(self.vbox)
 								self.scroll.setWidget(self.widget)
@@ -316,8 +348,8 @@ class mainPage(QDialog):
 						print('Timed out - killing', process.pid)
 						os.system("TASKKILL /F /IM a.exe /T")
 						process.kill()
-						object = QLabel(f'[{content}] Test {i}: Chương trình chạy quá thời gian - thời gian chạy {exe_time}s')
-						object.setStyleSheet("color: red")
+						object = QLabel(f'[{pr_nickname}] Test {i}: Chương trình chạy quá thời gian - thời gian chạy {exe_time}s')
+						object.setStyleSheet("color: red; font-size:11px;")
 						self.vbox.addWidget(object)
 						self.widget.setLayout(self.vbox)
 						self.scroll.setWidget(self.widget)
@@ -325,46 +357,41 @@ class mainPage(QDialog):
 						QApplication.processEvents()
 						
 						
-					self.progressBar.setValue(i*prbar_val)
+					self.progressBar.setValue(int(i*prbar_val))
 					print("--- %s seconds ---" % (time.time() - start_time))
 					print(f"Test {i} oke!")
 				self.progressBar.setVisible(False)
-				object = QLabel(f'=== KẾT THÚC: ĐIỂM 100% ===')
+				object = QLabel(f'=== KẾT THÚC: ĐIỂM {tempScore}% ===')
+				object.setStyleSheet("color: black; font-size:11px;")
 				self.vbox.addWidget(object)
 				self.widget.setLayout(self.vbox)
 				self.scroll.setWidget(self.widget)
 				self.scroll.verticalScrollBar().rangeChanged.connect(self.ResizeScroll)
 
-				# con.execute(f"SELECT mark FROM user_exercise WHERE user_id like '{_msv}' and exercise_id like '{content}'; ")
-				# userMark = con.fetchall()
-				# if(tempMark > userMark[0][0]):
-				# 	self.tableWidget.setItem(crRow,4, QTableWidgetItem(f'{float(tempMark)}'))
-				# 	self.tableWidget.item(crRow,4).setTextAlignment(Qt.AlignCenter)
-				# 	con.execute(f"UPDATE user_exercise SET mark = {float(tempMark)} WHERE user_id like '{_msv}' and exercise_id like '{content}';")
-				# 	mydb.commit()
+				userScore = float(content[problem_index]['score'])
+				if(tempScore > userScore):
+					self.tableWidget.setItem(crRow,4, QTableWidgetItem(f'{float(tempScore)}'))
+					self.tableWidget.item(crRow,4).setTextAlignment(Qt.AlignCenter)
+					#.....update score to database.....
 
 				# 	# Update submit_times
-				# 	con.execute(f"SELECT submit FROM user_exercise WHERE user_id like '{_msv}' and exercise_id like '{content}'; ")
-				# 	submit_times = int(con.fetchall()[0][0])
-				# 	self.tableWidget.setItem(crRow,5, QTableWidgetItem(f'{submit_times + 1}'))
-				# 	self.tableWidget.item(crRow,5).setTextAlignment(Qt.AlignCenter)
-				# 	con.execute(f"UPDATE user_exercise SET submit = {submit_times + 1} WHERE user_id like '{_msv}' and exercise_id like '{content}';")
-				# 	mydb.commit()
+					submit_times = int(content[problem_index]['tryhard'])
+					self.tableWidget.setItem(crRow,5, QTableWidgetItem(f'{submit_times + 1}'))
+					self.tableWidget.item(crRow,5).setTextAlignment(Qt.AlignCenter)
+					#.....update tryhard to database.....
 
-				# 	if(tempMark == 100):
-				# 		for i in range(6):
-				# 			self.tableWidget.item(crRow,i).setForeground(QtGui.QColor(250, 3, 0))
-				# 	mark+=tempMark
-				# 	con.execute(f"UPDATE user_subject SET mark = {float(mark)} WHERE user_id like '{_msv}' and subject_id like 'TTUD';")
-				# 	mydb.commit()
-				# 	self.markDisplay.setText(f'Điểm tổng : {mark} / {totalMark}')
-				# else:
-				# 	object = QLabel("--GIỮ NGUYÊN ĐIỂM--")
-				# 	self.vbox.addWidget(object)
-				# 	self.widget.setLayout(self.vbox)
-				# 	self.scroll.setWidget(self.widget)
-				# 	self.scroll.verticalScrollBar().rangeChanged.connect(self.ResizeScroll)
-				subprocess.run(f"del /f a.exe",shell=True)
+					if(tempScore == 100):
+						for i in range(6):
+							self.tableWidget.item(crRow,i).setForeground(QtGui.QColor(250, 3, 0))
+					score+=tempScore
+					self.markDisplay.setText(f'Điểm tổng : {score} / {totalScore}')
+				else:
+					object = QLabel("--GIỮ NGUYÊN ĐIỂM--")
+					self.vbox.addWidget(object)
+					self.widget.setLayout(self.vbox)
+					self.scroll.setWidget(self.widget)
+					self.scroll.verticalScrollBar().rangeChanged.connect(self.ResizeScroll)
+				subprocess.run(f"rm a.out",shell=True)
 			else:
 				print("No choose file!")
 		except Exception as e:
@@ -376,12 +403,15 @@ class mainPage(QDialog):
 	def open(self):
 		try:
 			crRow = self.tableWidget.currentRow()
-			content = self.tableWidget.item(crRow,0).text()
+			pr_nickname = self.tableWidget.item(crRow,0).text()
 			simp_path_Data = 'Data'
 			abs_path_Data = os.path.abspath(simp_path_Data)
-			file = f'{abs_path_Data}\\{_main_sj_id}\\{content}.pdf'
-			subprocess.Popen([file],shell=True)
-			print(content)
+			file = f'{abs_path_Data}/{_main_sj_id}/{pr_nickname}.pdf'
+			# subprocess.Popen([file],shell=True)
+			subprocess.Popen(["open", file])
+			self.viewButton.setFocusPolicy(Qt.NoFocus)
+			
+			print(pr_nickname)
 		except Exception as e:
 			print(e)
 			print("Do not select!")
