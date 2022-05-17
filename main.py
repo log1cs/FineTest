@@ -270,7 +270,8 @@ class mainPage(QDialog):
 
 			subprocess.run(f"rm {zipFileName}",shell=True)
 
-			testcase_amount = len(os.listdir(f"TestCase/{pr_nickname}"))
+			testcase_amount = len(os.listdir(f"TestCase/{pr_nickname}"))//2
+			print(testcase_amount)
 			if(_sj_langs != None):
 				subject_langs = ""
 				for item in _sj_langs.split():
