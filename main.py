@@ -21,7 +21,7 @@ class LoginPage(QDialog):
 	def __init__(self):
 
 		# current_version
-		__version = 1.0
+		__version = 1.1
 		super(LoginPage, self).__init__()
 
 		
@@ -43,9 +43,9 @@ class LoginPage(QDialog):
 				app.exit()
 		else:
 			print("Continue!")
+
 			# Load loginpage 
 			loadUi("loginpage.ui", self)
-			self.setWindowTitle("Login")
 			widget.width = 580
 			widget.height = 262
 			widget.setWindowTitle('Đăng nhập')
@@ -71,43 +71,52 @@ class LoginPage(QDialog):
 		msv = self.idfield.text()  #0912102165
 		lop = self.classfield.text()
 
-		url = f"http://test.iptech.edu.vn/finetest4/api-user-login.php?masv={msv}&hoten={name}&lop={lop}&maytinh=%23&fbclid=IwAR1wFP4mL536UIZAC3IM2ku2DxcaS7m5iWZrpIS9A2JTb9p7-JngW03SIw0"
+		url = f"http://test.iptech.edu.vn/finetest4/api-user-login.php?masv={msv}&hoten={name}&lop={lop}&maytinh=%23"
 		res = requests.get(url)
 		content = res.json()
 
 		if(content['status'] == 1):
-			user_id = content['id']
-			sj_id_list = [ i['subject_id'] for i in content['subjects']]
-			sj_list = [ i['subject_name'] for i in content['subjects']]
+			if(len(content['subjects']) == 0):
+				self.errorLogin.setText("* Không có bài làm nào có thể truy cập")
+			else:
+				user_id = content['id']
+				sj_id_list = [ i['subject_id'] for i in content['subjects']]
+				sj_list = [ i['subject_name'] for i in content['subjects']]
 
-			sjSelection = QDialog(self)
-			sjSelection.setWindowTitle("Bạn chọn làm bài nào trong danh sách dưới đây")
-			sjSelection.setFixedHeight(80 * int(len(sj_list)))
-			sjSelection.setFixedWidth(500)
-			connect_box = QVBoxLayout(sjSelection)
-			connect_box.setAlignment(Qt.AlignCenter)  
-			self.errorLogin.setText("")
-			for i in sj_list:
-				sj = QPushButton(i)
-				sj.setFixedSize(350, 39)
-				sj.setStyleSheet("color:black; background-color:#7ab0cc; border-radius: 6px;")
-				sj.clicked.connect(self.goToMainPage)
-				connect_box.addWidget(sj, alignment=Qt.AlignCenter)
-			sjSelection.exec()
-		else:
+				sjSelection = QDialog(self)
+				sjSelection.setWindowTitle("Bạn chọn làm bài nào trong danh sách dưới đây")
+				sjSelection.setFixedHeight(80 * int(len(sj_list)))
+				sjSelection.setFixedWidth(500)
+				connect_box = QVBoxLayout(sjSelection)
+				connect_box.setAlignment(Qt.AlignCenter)  
+				self.errorLogin.setText("")
+				for i in sj_list:
+					sj = QPushButton(i)
+					sj.setFixedSize(350, 39)
+					sj.setStyleSheet("color:black; background-color:#7ab0cc; border-radius: 6px;")
+					sj.clicked.connect(self.goToMainPage)
+					connect_box.addWidget(sj, alignment=Qt.AlignCenter)
+				sjSelection.exec()
+
+		elif (content['status'] == 2 or content['status'] == 3):
+			self.errorLogin.setText("* Vui lòng liên hệ giáo viên để có thể đăng nhập")
+		elif (content['status'] == 4):
 			self.errorLogin.setText("* Vui lòng kiểm tra lại thông tin đăng nhập")
 			
 			print("Wrong!")
 
 	def goToMainPage(self):
-		global name, msv, lop, sjSelection, main_data, sj_id_list, res, main_sj_id
+		global name, msv, lop, sjSelection, main_data, sj_id_list, res, main_sj_id, sj_code
 		subject = self.sender().text()
 		print(subject)
 		for i in res.json()['subjects']:
 			if(i['subject_name'] == subject):
 				main_sj_id = i['subject_id']
 				sj_langs = i['subject_langs']
+				sj_code = i['subject_code']
 				break
+		print(main_sj_id)
+		print(sj_langs)
 		main = mainPage(name, msv, lop, subject, main_sj_id, sj_langs)
 		widget.addWidget(main)
 		widget.setCurrentIndex(widget.currentIndex()+1)
@@ -120,10 +129,12 @@ class LoginPage(QDialog):
 
 class mainPage(QDialog):
 	def __init__(self, name, msv, lop, subject, main_sj_id, sj_langs):
-		global _msv, _main_sj_id, user_id, _sj_langs, score, totalScore, content
+		global _msv, _main_sj_id, user_id, _sj_langs, score, totalScore, content, sj_code
 		_msv = msv
 		_main_sj_id = main_sj_id
 		_sj_langs = sj_langs
+		_sj_code = sj_code
+		print(_sj_code)
 		widget.setWindowTitle('FineTest')
 		super(mainPage, self).__init__()
 		loadUi("mainpage.ui", self)
@@ -239,7 +250,7 @@ class mainPage(QDialog):
 	
 	def submit(self):
 		try:
-			global score, totalScore, main_data, msv, _main_sj_id, _sj_langs, content
+			global score, totalScore, main_data, msv, _main_sj_id, _sj_langs, content, sj_code
 			tempScore = 0
 			crRow = self.tableWidget.currentRow()
 			pr_nickname = self.tableWidget.item(crRow,0).text()
@@ -248,9 +259,18 @@ class mainPage(QDialog):
 				if(content[i]['problem_nickname'] == pr_nickname):
 					problem_index = i
 					break
+			zipFileUrl = f'http://test.iptech.edu.vn/finetest4/problem/{sj_code[0:4]}2021/{pr_nickname}.zip'
+			req = requests.get(zipFileUrl)
+			zipFileName = f'{pr_nickname}.zip'
+			with open(zipFileName,'wb') as output_file:
+			    output_file.write(req.content)
 
-			# testcase_amount = int(main_data[msv]["subject"][_main_sj_id]["exercise"][content]["testcase"])
-			testcase_amount = 5
+			with zipfile.ZipFile(zipFileName, 'r') as zip_ref:
+			    zip_ref.extractall('TestCase')
+
+			subprocess.run(f"rm {zipFileName}",shell=True)
+
+			testcase_amount = len(os.listdir(f"TestCase/{pr_nickname}"))
 			if(_sj_langs != None):
 				subject_langs = ""
 				for item in _sj_langs.split():
@@ -291,9 +311,6 @@ class mainPage(QDialog):
 
 					process = subprocess.Popen(f"{drRun} <./Submit/{pr_nickname}/{i}.inp> ./User/{pr_nickname}/output{i}.out", shell=True)
 
-
-
-					
 					try:
 						start_time = time.time()
 						print('Running in process', process.pid)
@@ -401,19 +418,27 @@ class mainPage(QDialog):
 		self.scroll.verticalScrollBar().setValue(maxi)
 
 	def open(self):
+		global sj_code
 		try:
 			crRow = self.tableWidget.currentRow()
 			pr_nickname = self.tableWidget.item(crRow,0).text()
-			simp_path_Data = 'Data'
-			abs_path_Data = os.path.abspath(simp_path_Data)
-			file = f'{abs_path_Data}/{_main_sj_id}/{pr_nickname}.pdf'
-			# subprocess.Popen([file],shell=True)
-			subprocess.Popen(["open", file])
-			self.viewButton.setFocusPolicy(Qt.NoFocus)
-			
-			print(pr_nickname)
+			simp_path_Problems = 'Problems'
+			abs_path_Data = os.path.abspath(simp_path_Problems)
+			file = f'Problems/{pr_nickname}.pdf'
+			try:
+				# raise error
+				temp = open(file)
+				subprocess.Popen(["open", file])
+				self.viewButton.setFocusPolicy(Qt.NoFocus)
+			except:
+				print("try")
+				url = f"http://test.iptech.edu.vn/finetest4/problem/{sj_code[0:4]}2021/{pr_nickname}.pdf"
+				response = requests.get(url)
+				with open(f'Problems/{pr_nickname}.pdf', 'wb') as f:
+					f.write(response.content)
+				subprocess.Popen(["open", file])
+				self.viewButton.setFocusPolicy(Qt.NoFocus)
 		except Exception as e:
-			print(e)
 			print("Do not select!")
 	def exit(self):
 		app.exit()
