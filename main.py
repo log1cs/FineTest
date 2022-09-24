@@ -1,4 +1,4 @@
-import sys, subprocess, os, urllib, zipfile, time, json, PyQt5, requests
+import sys, subprocess, os, urllib, zipfile, time, json, PyQt5, requests, platform
 from PyQt5.uic import loadUi
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import * 
@@ -17,6 +17,28 @@ response = urlopen(url)
 main_data = json.loads(response.read())
 
 
+
+class Problem():
+	def __init__(self, code, nickName, fullName, content, testCase, timeLimit, topic,  score, tryHard):
+		self.code = code
+		self.nickName = nickName
+		self.fullName = fullName
+		self.content = content
+		self.testCase = testCase
+		self.timeLimit = timeLimit
+		self.topic = topic
+		self.score = score
+		self.tryHard = tryHard
+
+class Subject():
+	def __init__(self, subjectId, subjectCode, subjectName, subjectLangs):
+		self.id = subjectId
+		self.code = subjectCode
+		self.name = subjectName
+		self.langs = subjectLangs
+		
+
+
 class LoginPage(QDialog):
 	def __init__(self):
 
@@ -27,7 +49,10 @@ class LoginPage(QDialog):
 		
 		# check version
 		url = 'https://bsite.net/tuanvu02/version.txt'
-		file = urllib.request.urlopen(url)
+		try:
+			file = urllib.request.urlopen(url)
+		except:
+			QMessageBox.about(self, "Thông báo", "Không có kết nối Internet!")
 		version = float(file.read())
 		if (version > __version):
 			print("Update!")
@@ -66,13 +91,19 @@ class LoginPage(QDialog):
 
 
 	def select_subject(self):
-		global name, msv, lop, sjSelection, main_data, sj_id_list, res, user_id
+		global name, msv, lop, sjSelection, main_data, sj_id_list, res, user_id, subjectList
 		name = self.namefield.text()
 		msv = self.idfield.text()  #0912102165
 		lop = self.classfield.text()
+		computer_name = platform.node()
+		subjectList = []
 
+		url = f"http://test.iptech.edu.vn/finetest4/api-user-login.php?masv={msv}&hoten={name}&lop={lop}&maytinh={computer_name}"
 		url = f"http://test.iptech.edu.vn/finetest4/api-user-login.php?masv={msv}&hoten={name}&lop={lop}&maytinh=%23"
-		res = requests.get(url)
+		try:
+			res = requests.get(url)
+		except:
+			QMessageBox.about(self, "Thông báo", "Không có kết nối Internet!")
 		content = res.json()
 
 		if(content['status'] == 1):
@@ -80,21 +111,25 @@ class LoginPage(QDialog):
 				self.errorLogin.setText("* Không có bài làm nào có thể truy cập")
 			else:
 				user_id = content['id']
+				for sj in content['subjects']:
+					subject = Subject(sj['subject_id'], sj['subject_code'], sj['subject_name'], sj['subject_langs'])
+					subjectList.append(subject)
 				sj_id_list = [ i['subject_id'] for i in content['subjects']]
 				sj_list = [ i['subject_name'] for i in content['subjects']]
 
 				sjSelection = QDialog(self)
 				sjSelection.setWindowTitle("Bạn chọn làm bài nào trong danh sách dưới đây")
-				sjSelection.setFixedHeight(80 * int(len(sj_list)))
+				sjSelection.setFixedHeight(80 * int(len(subjectList)))
 				sjSelection.setFixedWidth(500)
 				connect_box = QVBoxLayout(sjSelection)
 				connect_box.setAlignment(Qt.AlignCenter)  
 				self.errorLogin.setText("")
-				for i in sj_list:
-					sj = QPushButton(i)
+				for i in subjectList:
+					sj = QPushButton(i.name)
 					sj.setFixedSize(350, 39)
 					sj.setStyleSheet("color:black; background-color:#7ab0cc; border-radius: 6px;")
-					sj.clicked.connect(self.goToMainPage)
+					# sj.clicked.connect(lambda: self.goToMainPage(i.id))
+					sj.clicked.connect(lambda _, j=i.id: self.goToMainPage(subjectId=j))
 					connect_box.addWidget(sj, alignment=Qt.AlignCenter)
 				sjSelection.exec()
 
@@ -105,18 +140,14 @@ class LoginPage(QDialog):
 			
 			print("Wrong!")
 
-	def goToMainPage(self):
+	def goToMainPage(self, subjectId):
+		print(subjectId)
 		global name, msv, lop, sjSelection, main_data, sj_id_list, res, main_sj_id, sj_code
 		subject = self.sender().text()
-		print(subject)
-		for i in res.json()['subjects']:
-			if(i['subject_name'] == subject):
-				main_sj_id = i['subject_id']
-				sj_langs = i['subject_langs']
-				sj_code = i['subject_code']
-				break
-		print(main_sj_id)
-		print(sj_langs)
+		self.subjectIndex = int(subjectId) - 1
+		main_sj_id = subjectList[self.subjectIndex].id
+		sj_langs = subjectList[self.subjectIndex].langs
+		sj_code = subjectList[self.subjectIndex].code
 		main = mainPage(name, msv, lop, subject, main_sj_id, sj_langs)
 		widget.addWidget(main)
 		widget.setCurrentIndex(widget.currentIndex()+1)
@@ -129,6 +160,7 @@ class LoginPage(QDialog):
 
 class mainPage(QDialog):
 	def __init__(self, name, msv, lop, subject, main_sj_id, sj_langs):
+		self.name = name
 		global _msv, _main_sj_id, user_id, _sj_langs, score, totalScore, content, sj_code
 		_msv = msv
 		_main_sj_id = main_sj_id
@@ -139,7 +171,7 @@ class mainPage(QDialog):
 		super(mainPage, self).__init__()
 		loadUi("mainpage.ui", self)
 		self.progressBar.setVisible(False)
-		self.nameDisplay.setText(f'Họ và tên : {name}')
+		self.nameDisplay.setText(f'Họ và tên : {self.name}')
 		self.idDisplay.setText(f'Mã sinh viên : {msv}')
 		self.classDisplay.setText(f'Lớp : {lop}')
 		self.sjDisplay.setText(f'Môn học : {subject}')
@@ -161,7 +193,7 @@ class mainPage(QDialog):
 
 		self.titleList.setStyleSheet("color: black; font-size: 12px; border: 0px solid #ccc;")
 	
-		url_problem = f"http://test.iptech.edu.vn/finetest4/api-user-subject-set.php?userid={user_id}&subjectid={_main_sj_id}&fbclid=IwAR30jurteX107CLh6wNF9W9_Fv6Il_NbZeBKaG2qNqAqitp5P5QoxjHMaDw"
+		url_problem = f"http://test.iptech.edu.vn/finetest4/api-user-subject-set.php?userid={user_id}&subjectid={_main_sj_id}"
 		res_problem = requests.get(url_problem)
 		content = res_problem.json()
 		score = 0
@@ -194,9 +226,13 @@ class mainPage(QDialog):
 		self.tableWidget.verticalHeader().setVisible(False)
 
 		
-		exercise_id_list = [i['problem_id'] for i in content]
+		# exercise_id_list = [i['problem_id'] for i in content]
 		i = 1
+		global problemList
+		problemList = []
 		for item in content:
+			problem = Problem(item['problem_id'], item['problem_nickname'], item["problem_fullname"], item["problem_content"], item["problem_testcase"], item["problem_maxtime"], item["problem_topic"], item["score"], item["tryhard"])
+			problemList.append(problem)
 			exercise_id = item['problem_nickname']
 			self.tableWidget.setItem(i,0, QTableWidgetItem(exercise_id))
 			self.tableWidget.setItem(i,1, QTableWidgetItem(item["problem_fullname"]))
@@ -253,18 +289,18 @@ class mainPage(QDialog):
 			global score, totalScore, main_data, msv, _main_sj_id, _sj_langs, content, sj_code
 			tempScore = 0
 			crRow = self.tableWidget.currentRow()
-			pr_nickname = self.tableWidget.item(crRow,0).text()
-			problem_index = None
-			for i in range(len(content)):
-				if(content[i]['problem_nickname'] == pr_nickname):
-					problem_index = i
-					break
+			problem_index = int(crRow) - 1
+			problem = problemList[int(crRow) - 1]
+			# pr_nickname = self.tableWidget.item(crRow,0).text()
+			pr_nickname = problem.nickName
 			zipFileUrl = f'http://test.iptech.edu.vn/finetest4/problem/{sj_code[0:4]}2021/{pr_nickname}.zip'
 			req = requests.get(zipFileUrl)
 			zipFileName = f'{pr_nickname}.zip'
 			with open(zipFileName,'wb') as output_file:
 			    output_file.write(req.content)
 
+			if not os.path.exists("Testcase"):
+				os.makedirs("Testcase")
 			with zipfile.ZipFile(zipFileName, 'r') as zip_ref:
 			    zip_ref.extractall('TestCase')
 
@@ -310,13 +346,13 @@ class mainPage(QDialog):
 					if i == 1 and path[0][-3:] == 'cpp':
 						subprocess.run(f'g++ {path[0]}', shell=True)
 
-					process = subprocess.Popen(f"{drRun} <./Submit/{pr_nickname}/{i}.inp> ./User/{pr_nickname}/output{i}.out", shell=True)
+					process = subprocess.Popen(f"{drRun} <./TestCase/{pr_nickname}/{i}.inp> ./User/{pr_nickname}/output{i}.out", shell=True)
 
 					try:
 						start_time = time.time()
 						print('Running in process', process.pid)
 						process.wait(timeout=1)
-						file1 = open(f"./Submit/{pr_nickname}/{i}.out",'r')
+						file1 = open(f"./TestCase/{pr_nickname}/{i}.out",'r')
 						var1 = file1.read()
 						file1.close()
 
@@ -424,22 +460,27 @@ class mainPage(QDialog):
 			crRow = self.tableWidget.currentRow()
 			pr_nickname = self.tableWidget.item(crRow,0).text()
 			simp_path_Problems = 'Problems'
-			abs_path_Data = os.path.abspath(simp_path_Problems)
-			file = f'Problems/{pr_nickname}.pdf'
 			try:
-				# raise error
+				# abs_path_Data = os.path.abspath(simp_path_Problems)
+				file = f'Problems/{pr_nickname}.pdf'
 				temp = open(file)
 				subprocess.Popen(["open", file])
 				self.viewButton.setFocusPolicy(Qt.NoFocus)
 			except:
-				print("try")
 				url = f"http://test.iptech.edu.vn/finetest4/problem/{sj_code[0:4]}2021/{pr_nickname}.pdf"
-				response = requests.get(url)
+				try:
+					response = requests.get(url)
+					print("except")
+				except:
+					QMessageBox.about(self, "Thông báo", "Không có kết nối Internet!")
+				if not os.path.exists("Problems"):
+					os.makedirs("Problems")
 				with open(f'Problems/{pr_nickname}.pdf', 'wb') as f:
 					f.write(response.content)
 				subprocess.Popen(["open", file])
 				self.viewButton.setFocusPolicy(Qt.NoFocus)
 		except Exception as e:
+			print(e)
 			print("Do not select!")
 	def exit(self):
 		app.exit()

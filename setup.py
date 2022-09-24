@@ -7,9 +7,11 @@ Usage:
 
 from setuptools import setup
 
-APP = ['FineTest.py']
-DATA_FILES = ['mainpage.ui', 'loginpage.ui']
-OPTIONS = {}
+APP = ['main.py']
+DATA_FILES = ["loginpage.ui", "mainpage.ui"]
+OPTIONS = {
+    'packages': []
+}
 
 setup(
     app=APP,
