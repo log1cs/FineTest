@@ -2,4 +2,4 @@
 FineTest - Desktop Application
 
 # Package
-pyinstaller FineTest.py
+pyinstaller -w --icon='ft-icon.icns' FineTest.py
