@@ -600,11 +600,32 @@ class mainPage(object):
                     prbar_val = 100 / testcase_amount
                     for i in range(1, testcase_amount + 1):
                         if i == 1 and path[0][-3:] == 'cpp':
-                            subprocess.run(f'cd {self.rootPath}\ng++ {path[0]}', shell=True)
-
-                        process = subprocess.Popen(
-                            f"{drRun} <{self.rootPath}/TestCase/{pr_nickname}/{i}.inp> {self.rootPath}/User/{pr_nickname}/output{i}.out",
-                            shell=True)
+                            try:
+                                isCompiled = os.system(f'cd {self.rootPath}\ng++ {path[0]}')
+                                if isCompiled != 0: 
+                                    raise Exception("Can not compile!")
+                            except:
+                                isCompiled = os.system(f'cd {self.rootPath}\ngcc {path[0]}')
+                                if(isCompiled != 0):
+                                    object = QLabel("Kết quả: Lỗi thực thi")
+                                    object.setStyleSheet("color: red; font-size:12px;")
+                                    self.vbox.addWidget(object)
+                                    self.resultWidget.setLayout(self.vbox)
+                                    self.scroll.setWidget(self.resultWidget)
+                                    self.scroll.verticalScrollBar().rangeChanged.connect(lambda x: ResizeScroll())
+                                    break
+                        try:
+                            process = subprocess.Popen(
+                                f"{drRun} <{self.rootPath}/TestCase/{pr_nickname}/{i}.inp> {self.rootPath}/User/{pr_nickname}/output{i}.out",
+                                shell=True)
+                        except:
+                            object = QLabel("Kết quả: Lỗi thực thi")
+                            object.setStyleSheet("color: red; font-size:12px;")
+                            self.vbox.addWidget(object)
+                            self.resultWidget.setLayout(self.vbox)
+                            self.scroll.setWidget(self.resultWidget)
+                            self.scroll.verticalScrollBar().rangeChanged.connect(lambda x: ResizeScroll())
+                            break
 
                         try:
                             start_time = time.time()
@@ -732,7 +753,7 @@ class mainPage(object):
 
 if __name__ == "__main__":
     rootPath = pathlib.Path(__file__).parent.resolve()
-    _version = 1.1
+    _version = 1.8
     url = f"https://bsite.net/tuanvu02/version.txt"
     version = float(requests.get(url).text.strip())
     if (version > _version):
