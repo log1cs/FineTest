@@ -489,10 +489,11 @@ class mainPage(object):
             self.tableWidget.item(i, 5).setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.tableWidget.setItem(i, 4, QTableWidgetItem(str(temp_score)))
             self.tableWidget.item(i, 4).setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            score += float(temp_score)
             if (temp_score == '100'):
-                score += 100
+                
                 for k in range(6):
-                    self.tableWidget.item(i, k).setForeground(QtGui.QColor(225, 61, 65))
+                    self.tableWidget.item(i, k).setForeground(QtGui.QColor(20,205,50))
             i += 1
         self.markDisplay.setText(f'Điểm tổng : {score} / {totalScore}')
 
@@ -598,6 +599,7 @@ class mainPage(object):
                         drRun = f'{self.rootPath}/a.out'
                     self.progressBar.setVisible(True)
                     prbar_val = 100 / testcase_amount
+                    score_step = 100/testcase_amount
                     for i in range(1, testcase_amount + 1):
                         if i == 1 and path[0][-3:] == 'cpp':
                             try:
@@ -641,7 +643,7 @@ class mainPage(object):
                             exe_time = round((time.time() - start_time), 3)
 
                             if var2 == var1:
-                                tempScore += 20
+                                tempScore += score_step
                                 object = QLabel(
                                     f'[{pr_nickname}] Test {i}: Hoàn toàn chính xác - thời gian chạy {exe_time}s')
                                 object.setStyleSheet("color: green; font-size:11px;")
@@ -656,7 +658,7 @@ class mainPage(object):
                                 tempVar2 = var2.split()
 
                                 if ''.join(tempVar2) == ''.join(tempVar1):
-                                    tempScore += 15
+                                    tempScore += score_step-5
                                     object = QLabel(f'[{pr_nickname}] Test {i}: Đúng nhưng sai sót về trình bày')
                                     object.setStyleSheet("color: black; font-size:11px;")
                                     self.vbox.addWidget(object)
