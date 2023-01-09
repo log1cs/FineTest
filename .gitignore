@@ -1,5 +1,5 @@
 *.eggs
 .DS_Store
-./Problem
-./Testcase
-./User
+Problem/
+Testcase/
+User/
